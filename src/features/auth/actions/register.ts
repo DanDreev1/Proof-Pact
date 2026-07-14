@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/validation/result";
+import { getErrorMessage } from "@/lib/utils/error-message";
 import { registerSchema } from "../schemas/auth-schemas";
 
 type RegisterSuccess = {
@@ -27,7 +28,14 @@ export async function registerAction(
     };
   }
 
-  const supabase = await createSupabaseServerClient();
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (error) {
+    return { ok: false, error: getErrorMessage(error, "Supabase is not configured on this deployment.") };
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -39,7 +47,7 @@ export async function registerAction(
   });
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: getErrorMessage(error, "Could not create account.") };
   }
 
   if (!data.session) {

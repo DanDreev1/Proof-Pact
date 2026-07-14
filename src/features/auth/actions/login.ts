@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/validation/result";
+import { getErrorMessage } from "@/lib/utils/error-message";
 import { loginSchema } from "../schemas/auth-schemas";
 
 export async function loginAction(
@@ -22,11 +23,18 @@ export async function loginAction(
     };
   }
 
-  const supabase = await createSupabaseServerClient();
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (error) {
+    return { ok: false, error: getErrorMessage(error, "Supabase is not configured on this deployment.") };
+  }
+
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: getErrorMessage(error, "Could not log in. Check email and password.") };
   }
 
   redirect("/");
