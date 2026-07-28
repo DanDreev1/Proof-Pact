@@ -22,3 +22,75 @@ input,
 textarea {
   font: inherit;
 }
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-shine {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes proof-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes route-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  55% {
+    transform: translateX(40%);
+  }
+
+  100% {
+    transform: translateX(210%);
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 1.6s ease-in-out infinite;
+}
+
+.animate-loading-ring {
+  animation: loading-ring 900ms linear infinite;
+}
+
+.animate-loading-shine {
+  animation: loading-shine 1.4s ease-in-out infinite;
+}
+
+.animate-proof-float {
+  animation: proof-float 1.8s ease-in-out infinite;
+}
+
+.animate-route-progress {
+  animation: route-progress 1.4s ease-in-out infinite;
+}
