@@ -9,7 +9,9 @@ export type CalendarProofRecord = {
   proofDate: string;
   videoExpiresAt: string;
   requesterId: string;
+  requesterName: string;
   reviewerId: string;
+  reviewerName: string;
 };
 
 export async function getSeasonProofRecords(userId: string, season: Season, seasonYear: number) {
@@ -28,6 +30,22 @@ export async function getSeasonProofRecords(userId: string, season: Season, seas
     return [];
   }
 
+  const participantIds = Array.from(
+    new Set(data.flatMap((record) => [record.requester_id, record.reviewer_id])),
+  );
+  const profilesById = new Map<string, string>();
+
+  if (participantIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", participantIds);
+
+    profiles?.forEach((profile) => {
+      profilesById.set(profile.id, profile.display_name);
+    });
+  }
+
   return data.map((record) => ({
     id: record.id,
     title: record.title,
@@ -35,6 +53,8 @@ export async function getSeasonProofRecords(userId: string, season: Season, seas
     proofDate: record.proof_date,
     videoExpiresAt: record.video_expires_at,
     requesterId: record.requester_id,
+    requesterName: profilesById.get(record.requester_id) ?? "Requester",
     reviewerId: record.reviewer_id,
+    reviewerName: profilesById.get(record.reviewer_id) ?? "Reviewer",
   })) satisfies CalendarProofRecord[];
 }

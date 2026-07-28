@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { RouteLoadingIndicator } from "@/components/ui/RouteLoadingIndicator";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,6 +29,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <ServiceWorkerRegistration />
+        <Suspense fallback={null}>
+          <RouteLoadingIndicator />
+        </Suspense>
         {children}
       </body>
     </html>

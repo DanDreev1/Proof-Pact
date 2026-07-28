@@ -71,6 +71,14 @@ supabase/schema.sql
 
 in the Supabase SQL Editor.
 
+Daily word pool update:
+
+```txt
+supabase/daily-word-pool-update.sql
+```
+
+Apply this after the base schema to replace the old small daily word function with a larger word pool and recent-repeat protection.
+
 The schema creates:
 
 - profiles
