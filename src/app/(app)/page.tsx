@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { DailyWordCacheWriter } from "@/features/daily-word/components/DailyWordCacheWriter";
 import { getTodayProofContext } from "@/features/daily-word/server/get-today-proof-context";
 import { getCurrentPair } from "@/features/pairs/queries/get-current-pair";
 import { getMyProofRequests } from "@/features/proofs/queries/get-my-proof-requests";
@@ -16,6 +17,10 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-4">
+      {proofContext?.ok ? (
+        <DailyWordCacheWriter proofDate={proofContext.proofDate} word={proofContext.dailyWord.word} />
+      ) : null}
+
       <header>
         <p className="text-sm text-slate-400">Today</p>
         <h1 className="text-2xl font-bold">Proof Pact</h1>

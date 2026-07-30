@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="theme-color" content="#020617" />
+    <title>Create Offline Proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: #0f172a;
+        --muted: #94a3b8;
+        --line: rgba(255, 255, 255, 0.1);
+        --danger: #fca5a5;
+        --ok: #86efac;
+        --warn: #fde68a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: radial-gradient(circle at top, #111827 0, #020617 42%, #000 100%);
+        color: #e5e7eb;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        width: 100%;
+        max-width: 430px;
+        min-height: 100dvh;
+        margin: 0 auto;
+        padding: 20px 16px 96px;
+        border-inline: 1px solid var(--line);
+        background: rgba(2, 6, 23, 0.8);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.1;
+        font-weight: 700;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .card {
+        overflow: hidden;
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+      }
+
+      .card-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .card-content {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .instruction {
+        margin: 0;
+        padding: 12px;
+        border-radius: 16px;
+        background: #0f172a;
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .word-box {
+        padding: 16px;
+        border-radius: 16px;
+        background: #0f172a;
+      }
+
+      .word-box p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+      }
+
+      .word {
+        display: block;
+        margin-top: 4px;
+        color: #fff;
+        font-size: 40px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .word-meta {
+        margin-top: 8px;
+        color: #94a3b8;
+        font-size: 14px;
+      }
+
+      .notice {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin: 0;
+        padding: 12px;
+        border: 1px solid rgba(253, 230, 138, 0.2);
+        border-radius: 16px;
+        background: rgba(253, 230, 138, 0.08);
+        color: var(--warn);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .saved {
+        display: none;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid rgba(134, 239, 172, 0.2);
+        border-radius: 16px;
+        background: rgba(134, 239, 172, 0.08);
+        color: #d1fae5;
+        font-size: 14px;
+      }
+
+      .saved.visible {
+        display: grid;
+      }
+
+      .saved p {
+        margin: 4px 0 0;
+        color: rgba(209, 250, 229, 0.7);
+      }
+
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        min-height: 44px;
+        margin-top: 8px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #0f172a;
+        color: #fff;
+        font: inherit;
+        outline: none;
+      }
+
+      input[type="file"] {
+        padding: 12px;
+      }
+
+      input[type="text"],
+      textarea {
+        padding: 0 14px;
+      }
+
+      textarea {
+        min-height: 112px;
+        padding-block: 12px;
+        resize: vertical;
+      }
+
+      .file {
+        display: none;
+        padding: 12px;
+        border-radius: 16px;
+        background: #0f172a;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .status {
+        min-height: 22px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .status.ok {
+        color: var(--ok);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .button {
+        display: flex;
+        width: 100%;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 16px;
+        background: #fff;
+        color: #020617;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .button.secondary {
+        background: #1e293b;
+        color: #fff;
+      }
+
+      .button.ghost {
+        background: transparent;
+        color: #fff;
+      }
+
+      .nav {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 10;
+        width: 100%;
+        max-width: 430px;
+        margin: 0 auto;
+        padding: 8px;
+        border-top: 1px solid var(--line);
+        background: rgba(2, 6, 23, 0.95);
+        backdrop-filter: blur(12px);
+      }
+
+      .nav-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .nav a {
+        display: flex;
+        min-height: 48px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        border-radius: 16px;
+        color: #cbd5e1;
+        font-size: 12px;
+        text-decoration: none;
+      }
+
+      .nav a.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Create proof</p>
+      <h1>Record your proof</h1>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Offline proof draft</h2>
+        </div>
+
+        <div class="card-content">
+          <div class="word-box">
+            <p>Say this in your video</p>
+            <strong id="daily-word" class="word">...</strong>
+            <div id="daily-word-meta" class="word-meta">Looking for cached daily word.</div>
+          </div>
+
+          <p class="instruction">Record a short video near the gym/pool and say today's date and word.</p>
+
+          <p class="notice">
+            <span aria-hidden="true">!</span>
+            <span>You are offline. Choose or record a video now, then upload it when connection returns.</span>
+          </p>
+
+          <div id="saved" class="saved">
+            <div>
+              <strong>Saved proof ready</strong>
+              <p>This video is stored on this device until it is submitted or removed.</p>
+            </div>
+            <a class="button" href="/create">Upload saved proof</a>
+            <button id="delete" class="button ghost" type="button">Remove saved proof</button>
+          </div>
+
+          <label>
+            Video proof
+            <input id="video" type="file" accept="video/*" capture="environment" />
+          </label>
+
+          <div id="file" class="file"></div>
+
+          <label>
+            Title
+            <input id="title" type="text" maxlength="80" placeholder="Title, e.g. Gym session" />
+          </label>
+
+          <label>
+            Description
+            <textarea id="description" maxlength="500" placeholder="Optional description"></textarea>
+          </label>
+
+          <p id="status" class="status">Waiting for a video.</p>
+
+          <a class="button" href="/create">Open upload page</a>
+          <a class="button secondary" href="/">Back home</a>
+        </div>
+      </section>
+    </main>
+
+    <nav class="nav" aria-label="Bottom navigation">
+      <div class="nav-grid">
+        <a href="/">Today</a>
+        <a href="/pair">Pair</a>
+        <a class="active" href="/create">Create</a>
+        <a href="/calendar">Calendar</a>
+        <a href="/profile">Profile</a>
+      </div>
+    </nav>
+
+    <script>
+      const databaseName = "proof-pact-offline";
+      const databaseVersion = 2;
+      const draftStoreName = "proof-drafts";
+      const dailyWordStoreName = "daily-word-cache";
+      const currentDraftId = "current";
+      const latestDailyWordId = "latest";
+      const maxVideoSize = 200 * 1024 * 1024;
+
+      const dailyWordText = document.getElementById("daily-word");
+      const dailyWordMeta = document.getElementById("daily-word-meta");
+      const videoInput = document.getElementById("video");
+      const titleInput = document.getElementById("title");
+      const descriptionInput = document.getElementById("description");
+      const statusText = document.getElementById("status");
+      const fileBox = document.getElementById("file");
+      const deleteButton = document.getElementById("delete");
+      const savedBox = document.getElementById("saved");
+
+      let currentVideo = null;
+      let currentVideoName = "";
+      let currentVideoType = "";
+      let currentVideoSize = 0;
+      let currentCreatedAt = "";
+      let saveTimer = 0;
+
+      function formatFileSize(bytes) {
+        const megabytes = bytes / (1024 * 1024);
+        return megabytes >= 1 ? `${megabytes.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+      }
+
+      function setStatus(message, type) {
+        statusText.textContent = message;
+        statusText.className = `status ${type || ""}`.trim();
+      }
+
+      function openDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(databaseName, databaseVersion);
+
+          request.onupgradeneeded = () => {
+            const database = request.result;
+            if (!database.objectStoreNames.contains(draftStoreName)) {
+              database.createObjectStore(draftStoreName, { keyPath: "id" });
+            }
+            if (!database.objectStoreNames.contains(dailyWordStoreName)) {
+              database.createObjectStore(dailyWordStoreName, { keyPath: "id" });
+            }
+          };
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function withStore(mode, callback) {
+        const database = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(draftStoreName, mode);
+          const store = transaction.objectStore(draftStoreName);
+          const request = callback(store);
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          transaction.oncomplete = () => database.close();
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error);
+          };
+        });
+      }
+
+      async function withNamedStore(storeName, mode, callback) {
+        const database = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(storeName, mode);
+          const store = transaction.objectStore(storeName);
+          const request = callback(store);
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          transaction.oncomplete = () => database.close();
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error);
+          };
+        });
+      }
+
+      async function getDraft() {
+        return (await withStore("readonly", (store) => store.get(currentDraftId))) || null;
+      }
+
+      async function getDailyWord() {
+        return (await withNamedStore(dailyWordStoreName, "readonly", (store) => store.get(latestDailyWordId))) || null;
+      }
+
+      async function saveDraft() {
+        if (!currentVideo) return;
+
+        const now = new Date().toISOString();
+
+        await withStore("readwrite", (store) =>
+          store.put({
+            id: currentDraftId,
+            title: titleInput.value,
+            description: descriptionInput.value,
+            video: currentVideo,
+            videoName: currentVideoName,
+            videoType: currentVideoType,
+            videoSize: currentVideoSize,
+            createdAt: currentCreatedAt || now,
+            updatedAt: now,
+          }),
+        );
+
+        currentCreatedAt = currentCreatedAt || now;
+        setStatus("Proof saved on this device. Open upload page when internet returns.", "ok");
+      }
+
+      function queueSave() {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(() => {
+          saveDraft().catch(() => setStatus("Could not save proof on this device.", "error"));
+        }, 400);
+      }
+
+      function renderFile() {
+        if (!currentVideo) {
+          fileBox.style.display = "none";
+          fileBox.textContent = "";
+          savedBox.classList.remove("visible");
+          return;
+        }
+
+        fileBox.style.display = "block";
+        fileBox.textContent = `${currentVideoName} - ${formatFileSize(currentVideoSize)} / ${formatFileSize(maxVideoSize)}`;
+        savedBox.classList.add("visible");
+      }
+
+      async function deleteDraft() {
+        await withStore("readwrite", (store) => store.delete(currentDraftId));
+        currentVideo = null;
+        currentVideoName = "";
+        currentVideoType = "";
+        currentVideoSize = 0;
+        currentCreatedAt = "";
+        videoInput.value = "";
+        titleInput.value = "";
+        descriptionInput.value = "";
+        renderFile();
+        setStatus("Saved proof removed from this device.", "ok");
+      }
+
+      videoInput.addEventListener("change", () => {
+        const selectedFile = videoInput.files && videoInput.files[0] ? videoInput.files[0] : null;
+
+        if (!selectedFile) return;
+
+        if (!selectedFile.type.startsWith("video/")) {
+          setStatus("Only video files are allowed.", "error");
+          return;
+        }
+
+        if (selectedFile.size > maxVideoSize) {
+          setStatus(`Video is ${formatFileSize(selectedFile.size)}. Maximum size is ${formatFileSize(maxVideoSize)}.`, "error");
+          return;
+        }
+
+        currentVideo = selectedFile;
+        currentVideoName = selectedFile.name;
+        currentVideoType = selectedFile.type || "video/webm";
+        currentVideoSize = selectedFile.size;
+        currentCreatedAt = "";
+        renderFile();
+        queueSave();
+      });
+
+      titleInput.addEventListener("input", queueSave);
+      descriptionInput.addEventListener("input", queueSave);
+      deleteButton.addEventListener("click", () => {
+        deleteDraft().catch(() => setStatus("Could not remove saved proof.", "error"));
+      });
+
+      getDailyWord()
+        .then((dailyWord) => {
+          if (!dailyWord) {
+            dailyWordText.textContent = "...";
+            dailyWordMeta.textContent = "Open the app online once today to cache the server word.";
+            return;
+          }
+
+          dailyWordText.textContent = dailyWord.word;
+          dailyWordMeta.textContent = `Proof date: ${dailyWord.proofDate}`;
+        })
+        .catch(() => {
+          dailyWordText.textContent = "...";
+          dailyWordMeta.textContent = "Could not read cached daily word.";
+        });
+
+      getDraft()
+        .then((draft) => {
+          if (!draft) return;
+
+          currentVideo = draft.video;
+          currentVideoName = draft.videoName;
+          currentVideoType = draft.videoType;
+          currentVideoSize = draft.videoSize;
+          currentCreatedAt = draft.createdAt;
+          titleInput.value = draft.title || "";
+          descriptionInput.value = draft.description || "";
+          renderFile();
+          setStatus("Saved proof restored from this device.", "ok");
+        })
+        .catch(() => setStatus("Could not restore saved proof from this device.", "error"));
+    </script>
+  </body>
+</html>
