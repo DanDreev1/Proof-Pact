@@ -12,10 +12,19 @@ export type OfflineProofDraft = {
   updatedAt: string;
 };
 
+export type CachedDailyWord = {
+  id: "latest";
+  proofDate: string;
+  word: string;
+  cachedAt: string;
+};
+
 const databaseName = "proof-pact-offline";
-const databaseVersion = 1;
-const storeName = "proof-drafts";
+const databaseVersion = 2;
+const draftStoreName = "proof-drafts";
+const dailyWordStoreName = "daily-word-cache";
 const currentDraftId = "current";
+const latestDailyWordId = "latest";
 
 function openDraftDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -24,8 +33,12 @@ function openDraftDatabase() {
     request.onupgradeneeded = () => {
       const database = request.result;
 
-      if (!database.objectStoreNames.contains(storeName)) {
-        database.createObjectStore(storeName, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(draftStoreName)) {
+        database.createObjectStore(draftStoreName, { keyPath: "id" });
+      }
+
+      if (!database.objectStoreNames.contains(dailyWordStoreName)) {
+        database.createObjectStore(dailyWordStoreName, { keyPath: "id" });
       }
     };
 
@@ -34,7 +47,11 @@ function openDraftDatabase() {
   });
 }
 
-async function withDraftStore<T>(mode: IDBTransactionMode, callback: (store: IDBObjectStore) => IDBRequest<T>) {
+async function withStore<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  callback: (store: IDBObjectStore) => IDBRequest<T>,
+) {
   const database = await openDraftDatabase();
 
   return new Promise<T>((resolve, reject) => {
@@ -55,7 +72,7 @@ async function withDraftStore<T>(mode: IDBTransactionMode, callback: (store: IDB
 export async function getOfflineProofDraft() {
   if (typeof indexedDB === "undefined") return null;
 
-  return withDraftStore<OfflineProofDraft | undefined>("readonly", (store) => store.get(currentDraftId)).then(
+  return withStore<OfflineProofDraft | undefined>(draftStoreName, "readonly", (store) => store.get(currentDraftId)).then(
     (draft) => draft ?? null,
   );
 }
@@ -84,11 +101,32 @@ export async function saveOfflineProofDraft(input: {
     updatedAt: now,
   };
 
-  await withDraftStore<IDBValidKey>("readwrite", (store) => store.put(draft));
+  await withStore<IDBValidKey>(draftStoreName, "readwrite", (store) => store.put(draft));
 }
 
 export async function deleteOfflineProofDraft() {
   if (typeof indexedDB === "undefined") return;
 
-  await withDraftStore<undefined>("readwrite", (store) => store.delete(currentDraftId));
+  await withStore<undefined>(draftStoreName, "readwrite", (store) => store.delete(currentDraftId));
+}
+
+export async function getCachedDailyWord() {
+  if (typeof indexedDB === "undefined") return null;
+
+  return withStore<CachedDailyWord | undefined>(dailyWordStoreName, "readonly", (store) =>
+    store.get(latestDailyWordId),
+  ).then((dailyWord) => dailyWord ?? null);
+}
+
+export async function saveCachedDailyWord(input: { proofDate: string; word: string }) {
+  if (typeof indexedDB === "undefined") return;
+
+  const dailyWord: CachedDailyWord = {
+    id: latestDailyWordId,
+    proofDate: input.proofDate,
+    word: input.word,
+    cachedAt: new Date().toISOString(),
+  };
+
+  await withStore<IDBValidKey>(dailyWordStoreName, "readwrite", (store) => store.put(dailyWord));
 }

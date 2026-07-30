@@ -1,4 +1,4 @@
-self.__proofPactCacheVersion = "offline-v1";
+self.__proofPactCacheVersion = "offline-v2";
 
 const offlineCacheName = `proof-pact-${self.__proofPactCacheVersion}`;
 const offlineCreateUrl = "/offline/create.html";

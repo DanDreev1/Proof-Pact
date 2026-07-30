@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { DailyWordCacheWriter } from "@/features/daily-word/components/DailyWordCacheWriter";
 import { getTodayProofContext } from "@/features/daily-word/server/get-today-proof-context";
 import { getCurrentPair } from "@/features/pairs/queries/get-current-pair";
 import { ProofCaptureForm } from "@/features/proofs/components/ProofCaptureForm";
@@ -42,7 +43,10 @@ export default async function CreateProofPage() {
           </CardContent>
         </Card>
       ) : (
-        <ProofCaptureForm dailyWord={proofContext.dailyWord.word} />
+        <>
+          <DailyWordCacheWriter proofDate={proofContext.proofDate} word={proofContext.dailyWord.word} />
+          <ProofCaptureForm dailyWord={proofContext.dailyWord.word} />
+        </>
       )}
     </div>
   );
