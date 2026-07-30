@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="theme-color" content="#020617" />
+    <title>Create Offline Proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: #0f172a;
+        --muted: #94a3b8;
+        --line: rgba(255, 255, 255, 0.1);
+        --danger: #fca5a5;
+        --ok: #86efac;
+        --warn: #fde68a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: radial-gradient(circle at top, #111827 0, #020617 42%, #000 100%);
+        color: #e5e7eb;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        width: 100%;
+        max-width: 430px;
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: 20px 16px 96px;
+        border-inline: 1px solid var(--line);
+        background: rgba(2, 6, 23, 0.8);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .card {
+        margin-top: 24px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.78);
+      }
+
+      .notice {
+        margin: 0 0 16px;
+        padding: 12px;
+        border: 1px solid rgba(253, 230, 138, 0.2);
+        border-radius: 18px;
+        background: rgba(253, 230, 138, 0.08);
+        color: var(--warn);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      label {
+        display: block;
+        margin-top: 14px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 8px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #0f172a;
+        color: #fff;
+        font: inherit;
+        outline: none;
+      }
+
+      input[type="file"] {
+        padding: 12px;
+      }
+
+      input[type="text"],
+      textarea {
+        padding: 0 14px;
+      }
+
+      textarea {
+        min-height: 112px;
+        padding-block: 12px;
+        resize: vertical;
+      }
+
+      .file {
+        display: none;
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 18px;
+        background: #020617;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .status {
+        min-height: 22px;
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .status.ok {
+        color: var(--ok);
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .button {
+        display: flex;
+        width: 100%;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 14px;
+        border: 0;
+        border-radius: 18px;
+        background: #fff;
+        color: #020617;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .button.secondary {
+        background: #1e293b;
+        color: #fff;
+      }
+
+      .button.ghost {
+        background: transparent;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Create proof</p>
+      <h1>Record offline</h1>
+
+      <section class="card">
+        <p class="notice">
+          You are offline. Record or choose a video now. It will be saved only on this device, then uploaded from the
+          normal Create page when internet returns.
+        </p>
+
+        <h2>Local proof draft</h2>
+
+        <label>
+          Video proof
+          <input id="video" type="file" accept="video/*" capture="environment" />
+        </label>
+
+        <div id="file" class="file"></div>
+
+        <label>
+          Title
+          <input id="title" type="text" maxlength="80" placeholder="Gym session" />
+        </label>
+
+        <label>
+          Description
+          <textarea id="description" maxlength="500" placeholder="Optional description"></textarea>
+        </label>
+
+        <p id="status" class="status">Waiting for a video.</p>
+
+        <a class="button" href="/create">Open upload page</a>
+        <button id="delete" class="button secondary" type="button">Remove saved proof</button>
+        <a class="button ghost" href="/">Back home</a>
+      </section>
+    </main>
+
+    <script>
+      const databaseName = "proof-pact-offline";
+      const databaseVersion = 1;
+      const storeName = "proof-drafts";
+      const currentDraftId = "current";
+      const maxVideoSize = 200 * 1024 * 1024;
+
+      const videoInput = document.getElementById("video");
+      const titleInput = document.getElementById("title");
+      const descriptionInput = document.getElementById("description");
+      const statusText = document.getElementById("status");
+      const fileBox = document.getElementById("file");
+      const deleteButton = document.getElementById("delete");
+
+      let currentVideo = null;
+      let currentVideoName = "";
+      let currentVideoType = "";
+      let currentVideoSize = 0;
+      let currentCreatedAt = "";
+      let saveTimer = 0;
+
+      function formatFileSize(bytes) {
+        const megabytes = bytes / (1024 * 1024);
+        return megabytes >= 1 ? `${megabytes.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+      }
+
+      function setStatus(message, type) {
+        statusText.textContent = message;
+        statusText.className = `status ${type || ""}`.trim();
+      }
+
+      function openDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(databaseName, databaseVersion);
+
+          request.onupgradeneeded = () => {
+            const database = request.result;
+            if (!database.objectStoreNames.contains(storeName)) {
+              database.createObjectStore(storeName, { keyPath: "id" });
+            }
+          };
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function withStore(mode, callback) {
+        const database = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(storeName, mode);
+          const store = transaction.objectStore(storeName);
+          const request = callback(store);
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          transaction.oncomplete = () => database.close();
+          transaction.onerror = () => {
+            database.close();
+            reject(transaction.error);
+          };
+        });
+      }
+
+      async function getDraft() {
+        return (await withStore("readonly", (store) => store.get(currentDraftId))) || null;
+      }
+
+      async function saveDraft() {
+        if (!currentVideo) return;
+
+        const now = new Date().toISOString();
+
+        await withStore("readwrite", (store) =>
+          store.put({
+            id: currentDraftId,
+            title: titleInput.value,
+            description: descriptionInput.value,
+            video: currentVideo,
+            videoName: currentVideoName,
+            videoType: currentVideoType,
+            videoSize: currentVideoSize,
+            createdAt: currentCreatedAt || now,
+            updatedAt: now,
+          }),
+        );
+
+        currentCreatedAt = currentCreatedAt || now;
+        setStatus("Proof saved on this device. Open upload page when internet returns.", "ok");
+      }
+
+      function queueSave() {
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(() => {
+          saveDraft().catch(() => setStatus("Could not save proof on this device.", "error"));
+        }, 400);
+      }
+
+      function renderFile() {
+        if (!currentVideo) {
+          fileBox.style.display = "none";
+          fileBox.textContent = "";
+          return;
+        }
+
+        fileBox.style.display = "block";
+        fileBox.textContent = `${currentVideoName} - ${formatFileSize(currentVideoSize)} / ${formatFileSize(maxVideoSize)}`;
+      }
+
+      async function deleteDraft() {
+        await withStore("readwrite", (store) => store.delete(currentDraftId));
+        currentVideo = null;
+        currentVideoName = "";
+        currentVideoType = "";
+        currentVideoSize = 0;
+        currentCreatedAt = "";
+        videoInput.value = "";
+        titleInput.value = "";
+        descriptionInput.value = "";
+        renderFile();
+        setStatus("Saved proof removed from this device.", "ok");
+      }
+
+      videoInput.addEventListener("change", () => {
+        const selectedFile = videoInput.files && videoInput.files[0] ? videoInput.files[0] : null;
+
+        if (!selectedFile) return;
+
+        if (!selectedFile.type.startsWith("video/")) {
+          setStatus("Only video files are allowed.", "error");
+          return;
+        }
+
+        if (selectedFile.size > maxVideoSize) {
+          setStatus(`Video is ${formatFileSize(selectedFile.size)}. Maximum size is ${formatFileSize(maxVideoSize)}.`, "error");
+          return;
+        }
+
+        currentVideo = selectedFile;
+        currentVideoName = selectedFile.name;
+        currentVideoType = selectedFile.type || "video/webm";
+        currentVideoSize = selectedFile.size;
+        currentCreatedAt = "";
+        renderFile();
+        queueSave();
+      });
+
+      titleInput.addEventListener("input", queueSave);
+      descriptionInput.addEventListener("input", queueSave);
+      deleteButton.addEventListener("click", () => {
+        deleteDraft().catch(() => setStatus("Could not remove saved proof.", "error"));
+      });
+
+      getDraft()
+        .then((draft) => {
+          if (!draft) return;
+
+          currentVideo = draft.video;
+          currentVideoName = draft.videoName;
+          currentVideoType = draft.videoType;
+          currentVideoSize = draft.videoSize;
+          currentCreatedAt = draft.createdAt;
+          titleInput.value = draft.title || "";
+          descriptionInput.value = draft.description || "";
+          renderFile();
+          setStatus("Saved proof restored from this device.", "ok");
+        })
+        .catch(() => setStatus("Could not restore saved proof from this device.", "error"));
+    </script>
+  </body>
+</html>
